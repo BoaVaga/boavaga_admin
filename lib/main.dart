@@ -1,20 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 
+var tokenAdmin;
+
 void main() {
   runApp(MyApp());
+}
+
+class GQlConfiguration {
+  static HttpLink httplink = HttpLink("http://localhost:5000/graphql");
+
+  GraphQLClient myQlClient() {
+    return GraphQLClient(link: httplink, cache: GraphQLCache());
+  }
+}
+
+class Queries {
+  loginAdmSistema(email, senha) {
+    return '''mutation Login {
+  login(
+    email: "$email",
+    senha: "$senha",
+    tipo: SISTEMA
+  ) {
+    success
+    error
+    token
+  }
+}''';
+  }
+
+  loginAdmEstacionamento(email, senha) {
+    return '''mutation Login {
+  login(
+    email: "$email",
+    senha: "$senha",
+    tipo: ESTACIONAMENTO
+  ) {
+    success
+    error
+    token
+  }
+}''';
+  }
 }
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false, // Remover dps, bandeira modo debug
+      debugShowCheckedModeBanner: false,
       title: 'Boa Vaga',
       theme: ThemeData(
         scaffoldBackgroundColor: Color.fromARGB(240, 255, 255, 255), // Ligth
-        // scaffoldBackgroundColor: Color.fromARGB(255, 255, 255, 255), // Branco
-        // scaffoldBackgroundColor: Color.fromRGBO(35, 35, 35, 1), // Cinza Escuro
       ),
       home: MyHomePage(), // AQUI
     );
@@ -27,7 +65,15 @@ class MyHomePage extends StatefulWidget {
 }
 
 class Home extends State<MyHomePage> {
+  Queries _queries = Queries();
+
+  GQlConfiguration _graphql = GQlConfiguration();
+
+  var jsonResposta;
   bool isSwitched = false;
+
+  final controllerTextEmail = TextEditingController();
+  final controllerTextSenha = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +90,7 @@ class Home extends State<MyHomePage> {
             Container(
               margin: const EdgeInsets.only(top: 40, right: 20, left: 20),
               child: TextField(
+                  controller: controllerTextEmail,
                   obscureText: false,
                   decoration: InputDecoration(
                       fillColor: Color.fromARGB(20, 20, 20, 20),
@@ -65,7 +112,9 @@ class Home extends State<MyHomePage> {
             Container(
               margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
               child: TextField(
-                  obscureText: false,
+                  controller: controllerTextSenha,
+                  obscureText: true,
+                  obscuringCharacter: '*',
                   decoration: InputDecoration(
                       fillColor: Color.fromARGB(20, 20, 20, 20),
                       filled: true,
@@ -107,7 +156,6 @@ class Home extends State<MyHomePage> {
                       onChanged: (value) {
                         setState(() {
                           isSwitched = value;
-                          print(isSwitched);
                         });
                       },
                     ),
@@ -123,21 +171,63 @@ class Home extends State<MyHomePage> {
                 child: Container(
                     margin: const EdgeInsets.only(top: 30),
                     child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           // AQUI Login
                           if (isSwitched == false) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      HomeAdmEstacionamento()),
-                            );
+                            var result = await loginAdmEstacionamento(
+                                controllerTextEmail.text,
+                                controllerTextSenha.text);
+                            if (result) {
+                              if (jsonResposta["login"]["success"] == true) {
+                                tokenAdmin = jsonResposta["login"]["token"];
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          HomeAdmEstacionamento()),
+                                );
+                              } else {
+                                if (jsonResposta["login"]["error"] ==
+                                    "email_nao_encontrado") {
+                                  mostrarAlertDialogErro(context,
+                                      "Seu email não foi encontrado em nosso sistema");
+                                } else if (jsonResposta["login"]["error"] ==
+                                    "senha_incorreta") {
+                                  mostrarAlertDialogErro(
+                                      context, "Sua senha está incorreta");
+                                } else {
+                                  mostrarAlertDialogErro(
+                                      context, "Erro desconhecido");
+                                }
+                              }
+                            }
                           } else if (isSwitched == true) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => HomeAdmSistema()),
-                            );
+                            var result = await loginAdmSistema(
+                                controllerTextEmail.text,
+                                controllerTextSenha.text);
+                            if (result) {
+                              if (jsonResposta["login"]["success"] == true) {
+                                tokenAdmin = jsonResposta["login"]["token"];
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => HomeAdmSistema()),
+                                );
+                              } else {
+                                if (jsonResposta["login"]["error"] ==
+                                    "email_nao_encontrado") {
+                                  mostrarAlertDialogErro(context,
+                                      "Seu email não foi encontrado em nosso sistema");
+                                } else if (jsonResposta["login"]["error"] ==
+                                    "senha_incorreta") {
+                                  mostrarAlertDialogErro(
+                                      context, "Sua senha está incorreta");
+                                } else {
+                                  mostrarAlertDialogErro(
+                                      context, "Erro desconhecido");
+                                }
+                              }
+                            }
                           }
                         },
                         child: Padding(
@@ -152,7 +242,6 @@ class Home extends State<MyHomePage> {
                     child: ElevatedButton(
                         onPressed: () {
                           // AQUI cadastro
-                          print("cadastro aqui");
                         },
                         child: Padding(
                           padding: const EdgeInsets.only(
@@ -176,6 +265,32 @@ class Home extends State<MyHomePage> {
         ),
       ),
     );
+  }
+
+  Future loginAdmSistema(email, senha) async {
+    GraphQLClient _client = _graphql.myQlClient();
+    QueryResult result = await _client.mutate(
+        MutationOptions(document: gql(_queries.loginAdmSistema(email, senha))));
+
+    if (result.hasException)
+      return false;
+    else {
+      jsonResposta = result.data;
+      return true;
+    }
+  }
+
+  Future loginAdmEstacionamento(email, senha) async {
+    GraphQLClient _client = _graphql.myQlClient();
+    QueryResult result = await _client.mutate(MutationOptions(
+        document: gql(_queries.loginAdmEstacionamento(email, senha))));
+
+    if (result.hasException)
+      return false;
+    else {
+      jsonResposta = result.data;
+      return true;
+    }
   }
 }
 
@@ -476,4 +591,28 @@ class HomeAdmSistema extends StatelessWidget {
                           )))),
             ])));
   }
+}
+
+mostrarAlertDialogErro(BuildContext context, msgErro) {
+  Widget okButton = ElevatedButton(
+    child: Text("Ok"),
+    onPressed: () {
+      Navigator.of(context).pop();
+    },
+  );
+
+  AlertDialog alerta = AlertDialog(
+    title: Text("Erro"),
+    content: Text(msgErro),
+    actions: [
+      okButton,
+    ],
+  );
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return alerta;
+    },
+  );
 }
