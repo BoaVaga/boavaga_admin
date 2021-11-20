@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 
-var tokenAdmin;
+var tokenAdmin = "060ccda9f4f1ba3ed4becbf730edc895";
 
 void main() {
   runApp(MyApp());
 }
 
 class GQlConfiguration {
-  static HttpLink httplink = HttpLink("http://localhost:5000/graphql");
+  static HttpLink httplink = HttpLink(
+    "http://localhost:5000/graphql",
+  );
+
+  static AuthLink authLink = AuthLink(
+    getToken: () async => 'Bearer $tokenAdmin',
+  );
+
+  final Link link = authLink.concat(httplink);
 
   GraphQLClient myQlClient() {
-    return GraphQLClient(link: httplink, cache: GraphQLCache());
+    return GraphQLClient(link: link, cache: GraphQLCache());
   }
 }
 
@@ -43,6 +51,24 @@ class Queries {
   }
 }''';
   }
+
+  criarAdmSistema(nome, email, senha) {
+    return '''mutation Cadastro {
+  createAdminSistema(
+    nome: "$nome"
+    email: "$email"
+    senha: "$senha"
+  ) {
+    success
+    error
+    adminSistema {
+      id
+      nome
+      email
+    }
+  }
+}''';
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -54,7 +80,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         scaffoldBackgroundColor: Color.fromARGB(240, 255, 255, 255), // Ligth
       ),
-      home: MyHomePage(), // AQUI
+      home: PgCriarAdminSistema(), // AQUI
     );
   }
 }
@@ -530,7 +556,7 @@ class HomeAdmSistema extends StatelessWidget {
                       margin: const EdgeInsets.only(top: 10),
                       child: ElevatedButton(
                           onPressed: () {
-                            // AQUI alterar email
+                            // AQUI
                           },
                           child: Padding(
                             padding: const EdgeInsets.only(
@@ -543,7 +569,7 @@ class HomeAdmSistema extends StatelessWidget {
                       margin: const EdgeInsets.only(top: 10),
                       child: ElevatedButton(
                           onPressed: () {
-                            // AQUI alterar email
+                            // AQUI
                           },
                           child: Padding(
                             padding: const EdgeInsets.only(
@@ -556,7 +582,7 @@ class HomeAdmSistema extends StatelessWidget {
                       margin: const EdgeInsets.only(top: 10),
                       child: ElevatedButton(
                           onPressed: () {
-                            // AQUI alterar email
+                            // AQUI
                           },
                           child: Padding(
                             padding: const EdgeInsets.only(
@@ -569,7 +595,7 @@ class HomeAdmSistema extends StatelessWidget {
                       margin: const EdgeInsets.only(top: 10),
                       child: ElevatedButton(
                           onPressed: () {
-                            // AQUI alterar email
+                            // AQUI
                           },
                           child: Padding(
                             padding: const EdgeInsets.only(
@@ -582,7 +608,11 @@ class HomeAdmSistema extends StatelessWidget {
                       margin: const EdgeInsets.only(top: 10),
                       child: ElevatedButton(
                           onPressed: () {
-                            // AQUI alterar email
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => PgCriarAdminSistema()),
+                            );
                           },
                           child: Padding(
                             padding: const EdgeInsets.only(
@@ -590,6 +620,177 @@ class HomeAdmSistema extends StatelessWidget {
                             child: Text('Cadastrar novo Admin Sistema'),
                           )))),
             ])));
+  }
+}
+
+// ignore: must_be_immutable
+class PgCriarAdminSistema extends StatelessWidget {
+  Queries _queries = Queries();
+
+  GQlConfiguration _graphql = GQlConfiguration();
+
+  final controllerTextNomeNovoAdmin = TextEditingController();
+  final controllerTextEmailNovoAdmin = TextEditingController();
+  final controllerTextSenhaNovoAdmin = TextEditingController();
+
+  var jsonResposta;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              'assets/logonometransparente.png',
+              fit: BoxFit.contain,
+              height: 40,
+            ),
+          ],
+        ),
+        automaticallyImplyLeading: false,
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0.0,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Container(
+              margin: const EdgeInsets.only(top: 40, right: 20, left: 20),
+              child: TextField(
+                  controller: controllerTextNomeNovoAdmin,
+                  obscureText: false,
+                  decoration: InputDecoration(
+                      fillColor: Color.fromARGB(20, 20, 20, 20),
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15.0),
+                        borderSide: BorderSide(
+                          width: 0,
+                          style: BorderStyle.none,
+                        ),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.person,
+                        size: 32.0,
+                        color: Colors.grey.shade800,
+                      ),
+                      hintText: 'Nome')),
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+              child: TextField(
+                  controller: controllerTextEmailNovoAdmin,
+                  obscureText: false,
+                  decoration: InputDecoration(
+                      fillColor: Color.fromARGB(20, 20, 20, 20),
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15.0),
+                        borderSide: BorderSide(
+                          width: 0,
+                          style: BorderStyle.none,
+                        ),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.person,
+                        size: 32.0,
+                        color: Colors.grey.shade800,
+                      ),
+                      hintText: 'Email')),
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+              child: TextField(
+                  controller: controllerTextSenhaNovoAdmin,
+                  obscureText: true,
+                  obscuringCharacter: '*',
+                  decoration: InputDecoration(
+                      fillColor: Color.fromARGB(20, 20, 20, 20),
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15.0),
+                        borderSide: BorderSide(
+                          width: 0,
+                          style: BorderStyle.none,
+                        ),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.lock,
+                        size: 30.0,
+                        color: Colors.grey.shade800,
+                      ),
+                      hintText: 'Senha')),
+            ),
+            Container(
+                margin: const EdgeInsets.only(top: 30),
+                child: ElevatedButton(
+                    onPressed: () async {
+                      var result = await criarAdmSistema(
+                          controllerTextNomeNovoAdmin.text,
+                          controllerTextEmailNovoAdmin.text,
+                          controllerTextSenhaNovoAdmin.text);
+                      if (result) {
+                        if (jsonResposta["createAdminSistema"]["success"] ==
+                            true) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => HomeAdmSistema()),
+                          );
+                          var nome = jsonResposta['createAdminSistema']
+                              ['adminSistema']['nome'];
+                          var email = jsonResposta['createAdminSistema']
+                              ['adminSistema']['email'];
+                          mostrarAlertDialogSucesso(context,
+                              "Admin criado com sucesso!\nNome: $nome\nEmail: $email");
+                        } else {
+                          if (jsonResposta["createAdminSistema"]["error"] ==
+                              "email_ja_cadastrado") {
+                            mostrarAlertDialogErro(
+                                context, "Esse email já está cadastrado");
+                          } else if (jsonResposta["createAdminSistema"]
+                                  ["error"] ==
+                              "sem_permissao") {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => MyHomePage()),
+                            );
+                            mostrarAlertDialogErro(context,
+                                "Você não tem permissão para isso, faça o login");
+                          } else {
+                            mostrarAlertDialogErro(
+                                context, "Erro desconhecido");
+                          }
+                        }
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                          top: 15, right: 30, left: 30, bottom: 15),
+                      child: Text('Criar'),
+                    ))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future criarAdmSistema(nome, email, senha) async {
+    GraphQLClient _client = _graphql.myQlClient();
+    QueryResult result = await _client.mutate(MutationOptions(
+        document: gql(_queries.criarAdmSistema(nome, email, senha))));
+
+    if (result.hasException)
+      return false;
+    else {
+      jsonResposta = result.data;
+      return true;
+    }
   }
 }
 
@@ -604,6 +805,30 @@ mostrarAlertDialogErro(BuildContext context, msgErro) {
   AlertDialog alerta = AlertDialog(
     title: Text("Erro"),
     content: Text(msgErro),
+    actions: [
+      okButton,
+    ],
+  );
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return alerta;
+    },
+  );
+}
+
+mostrarAlertDialogSucesso(BuildContext context, msgSucesso) {
+  Widget okButton = ElevatedButton(
+    child: Text("Ok"),
+    onPressed: () {
+      Navigator.of(context).pop();
+    },
+  );
+
+  AlertDialog alerta = AlertDialog(
+    title: Text("Parabéns"),
+    content: Text(msgSucesso),
     actions: [
       okButton,
     ],
