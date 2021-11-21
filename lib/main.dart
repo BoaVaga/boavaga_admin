@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 
-var tokenAdmin = "060ccda9f4f1ba3ed4becbf730edc895";
+var tokenAdmin;
 
 void main() {
   runApp(MyApp());
@@ -80,7 +80,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         scaffoldBackgroundColor: Color.fromARGB(240, 255, 255, 255), // Ligth
       ),
-      home: PgCriarAdminSistema(), // AQUI
+      home: MyHomePage(), // AQUI
     );
   }
 }
