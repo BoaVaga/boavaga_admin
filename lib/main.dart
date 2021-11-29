@@ -152,6 +152,23 @@ class Queries {
   }
 }''';
   }
+
+  criarAdmEstacio(email, senha) { // AQUI
+    return '''mutation Cadastro {
+  createAdminEstacio(
+    email: "$email"
+    senha: "$senha"
+  ) {
+    success
+    error
+    adminSistema {
+      id
+      nome
+      email
+    }
+  }
+}''';
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -163,7 +180,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         scaffoldBackgroundColor: Color.fromARGB(240, 255, 255, 255), // Ligth
       ),
-      home: MyHomePage(), // AQUI
+      home: PgCadastroAdminEstacio(), // AQUI
     );
   }
 }
@@ -1133,6 +1150,138 @@ class PgListarEstacios extends StatelessWidget {
     }
   }
 }
+
+// ignore: must_be_immutable
+class PgCadastroAdminEstacio extends StatelessWidget {
+  Queries _queries = Queries();
+
+  GQlConfiguration _graphql = GQlConfiguration();
+
+  final controllerTextEmailNovoAdmin = TextEditingController();
+  final controllerTextSenhaNovoAdmin = TextEditingController();
+
+  var jsonResposta;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              'assets/logonometransparente.png',
+              fit: BoxFit.contain,
+              height: 40,
+            ),
+          ],
+        ),
+        automaticallyImplyLeading: false,
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0.0,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Container(
+              margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+              child: TextField(
+                  controller: controllerTextEmailNovoAdmin,
+                  obscureText: false,
+                  decoration: InputDecoration(
+                      fillColor: Color.fromARGB(20, 20, 20, 20),
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15.0),
+                        borderSide: BorderSide(
+                          width: 0,
+                          style: BorderStyle.none,
+                        ),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.person,
+                        size: 32.0,
+                        color: Colors.grey.shade800,
+                      ),
+                      hintText: 'Email')),
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+              child: TextField(
+                  controller: controllerTextSenhaNovoAdmin,
+                  obscureText: true,
+                  obscuringCharacter: '*',
+                  decoration: InputDecoration(
+                      fillColor: Color.fromARGB(20, 20, 20, 20),
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15.0),
+                        borderSide: BorderSide(
+                          width: 0,
+                          style: BorderStyle.none,
+                        ),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.lock,
+                        size: 30.0,
+                        color: Colors.grey.shade800,
+                      ),
+                      hintText: 'Senha')),
+            ),
+            Container(
+                margin: const EdgeInsets.only(top: 30),
+                child: ElevatedButton(
+                    onPressed: () async {
+                      var result = await criarAdmEstacio(controllerTextEmailNovoAdmin.text, controllerTextSenhaNovoAdmin.text);
+                      if (result) {
+                        /*if (jsonResposta["createAdminSistema"]["success"] == true) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => HomeAdmSistema()),
+                          );
+                          var nome = jsonResposta['createAdminSistema']['adminSistema']['nome'];
+                          var email = jsonResposta['createAdminSistema']['adminSistema']['email'];
+                          mostrarAlertDialogSucesso(context, "Admin criado com sucesso!\nNome: $nome\nEmail: $email");
+                        } else {
+                          if (jsonResposta["createAdminSistema"]["error"] == "email_ja_cadastrado") {
+                            mostrarAlertDialogErro(context, "Esse email já está cadastrado");
+                          } else if (jsonResposta["createAdminSistema"]["error"] == "sem_permissao") {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => MyHomePage()),
+                            );
+                            mostrarAlertDialogErro(context, "Você não tem permissão para isso, faça o login");
+                          } else {
+                            mostrarAlertDialogErro(context, "Erro desconhecido");
+                          }
+                        }*/
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 15, right: 30, left: 30, bottom: 15),
+                      child: Text('Cadastre-se'),
+                    ))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future criarAdmEstacio(email, senha) async {
+    GraphQLClient _client = _graphql.myQlClient();
+    QueryResult result = await _client.mutate(MutationOptions(document: gql(_queries.criarAdmEstacio(email, senha))));
+
+    if (result.hasException)
+      return false;
+    else {
+      jsonResposta = result.data;
+      return true;
+    }
+  }
+}
+
 
 mostrarAlertDialogErro(BuildContext context, msgErro) {
   Widget okButton = ElevatedButton(
