@@ -9,7 +9,7 @@ void main() {
 
 class GQlConfiguration {
   static HttpLink httplink = HttpLink(
-    "http://192.168.0.115:5000/graphql",
+    "http://192.168.0.114:5000/graphql",
   );
 
   static AuthLink authLink = AuthLink(
@@ -153,7 +153,8 @@ class Queries {
 }''';
   }
 
-  criarAdmEstacio(email, senha) { // AQUI
+  criarAdmEstacio(email, senha) {
+    // AQUI
     return '''mutation Cadastro {
   createAdminEstacio(
     email: "$email"
@@ -175,13 +176,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Boa Vaga',
-      theme: ThemeData(
-        scaffoldBackgroundColor: Color.fromARGB(240, 255, 255, 255), // Ligth
-      ),
-      home: PgCadastroAdminEstacio(), // AQUI
-    );
+        debugShowCheckedModeBanner: false,
+        title: 'Boa Vaga',
+        theme: ThemeData(
+          scaffoldBackgroundColor: Color.fromARGB(240, 255, 255, 255), // Ligth
+        ),
+        home: HomeAdmEstacionamento() // AQUI
+        );
   }
 }
 
@@ -782,30 +783,6 @@ class HomeAdmEstacionamento extends StatelessWidget {
                       },
                       child: Padding(
                         padding: const EdgeInsets.only(top: 15, right: 30, left: 30, bottom: 15),
-                        child: Text('Alterar meu email'),
-                      )))),
-          new SizedBox(
-              width: 300.0,
-              child: Container(
-                  margin: const EdgeInsets.only(top: 10),
-                  child: ElevatedButton(
-                      onPressed: () {
-                        // AQUI alterar email
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 15, right: 30, left: 30, bottom: 15),
-                        child: Text('Alterar minha senha'),
-                      )))),
-          new SizedBox(
-              width: 300.0,
-              child: Container(
-                  margin: const EdgeInsets.only(top: 10),
-                  child: ElevatedButton(
-                      onPressed: () {
-                        // AQUI alterar email
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 15, right: 30, left: 30, bottom: 15),
                         child: Text('Editar estacionamento'),
                       )))),
           new SizedBox(
@@ -818,7 +795,7 @@ class HomeAdmEstacionamento extends StatelessWidget {
                       },
                       child: Padding(
                         padding: const EdgeInsets.only(top: 15, right: 30, left: 30, bottom: 15),
-                        child: Text('Atualizar vagas manualmente'),
+                        child: Text('Atualizar vagas'),
                       )))),
         ])));
   }
@@ -1281,7 +1258,6 @@ class PgCadastroAdminEstacio extends StatelessWidget {
     }
   }
 }
-
 
 mostrarAlertDialogErro(BuildContext context, msgErro) {
   Widget okButton = ElevatedButton(
