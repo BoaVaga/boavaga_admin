@@ -9,7 +9,7 @@ void main() {
 
 class GQlConfiguration {
   static HttpLink httplink = HttpLink(
-    "http://192.168.0.114:5000/graphql",
+    "http://192.168.0.130:5000/graphql",
   );
 
   static AuthLink authLink = AuthLink(
@@ -154,7 +154,6 @@ class Queries {
   }
 
   criarAdmEstacio(email, senha) {
-    // AQUI
     return '''mutation Cadastro {
   createAdminEstacio(
     email: "$email"
@@ -162,10 +161,10 @@ class Queries {
   ) {
     success
     error
-    adminSistema {
+    adminEstacio {
       id
-      nome
       email
+      adminMestre
     }
   }
 }''';
@@ -181,7 +180,7 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           scaffoldBackgroundColor: Color.fromARGB(240, 255, 255, 255), // Ligth
         ),
-        home: HomeAdmEstacionamento() // AQUI
+        home: MyHomePage() // AQUI
         );
   }
 }
@@ -344,7 +343,10 @@ class Home extends State<MyHomePage> {
                     margin: const EdgeInsets.only(top: 5),
                     child: ElevatedButton(
                         onPressed: () {
-                          // AQUI cadastro
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => PgCadastroAdminEstacio()),
+                          );
                         },
                         child: Padding(
                           padding: const EdgeInsets.only(top: 15, right: 30, left: 30, bottom: 15),
@@ -1213,27 +1215,30 @@ class PgCadastroAdminEstacio extends StatelessWidget {
                     onPressed: () async {
                       var result = await criarAdmEstacio(controllerTextEmailNovoAdmin.text, controllerTextSenhaNovoAdmin.text);
                       if (result) {
-                        /*if (jsonResposta["createAdminSistema"]["success"] == true) {
+                        if (jsonResposta["createAdminEstacio"]["success"] == true) {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => HomeAdmSistema()),
+                            MaterialPageRoute(builder: (context) => HomeAdmEstacio()),
                           );
-                          var nome = jsonResposta['createAdminSistema']['adminSistema']['nome'];
-                          var email = jsonResposta['createAdminSistema']['adminSistema']['email'];
-                          mostrarAlertDialogSucesso(context, "Admin criado com sucesso!\nNome: $nome\nEmail: $email");
+                          var email = jsonResposta['createAdminEstacio']['adminEstacio']['email'];
+                          mostrarAlertDialogSucesso(context, "Conta criada com sucesso!\nEmail: $email");
                         } else {
-                          if (jsonResposta["createAdminSistema"]["error"] == "email_ja_cadastrado") {
+                          if (jsonResposta["createAdminEstacio"]["error"] == "email_ja_cadastrado") {
                             mostrarAlertDialogErro(context, "Esse email já está cadastrado");
-                          } else if (jsonResposta["createAdminSistema"]["error"] == "sem_permissao") {
+                          } else if (jsonResposta["createAdminEstacio"]["error"] == "sem_permissao") {
                             Navigator.push(
                               context,
                               MaterialPageRoute(builder: (context) => MyHomePage()),
                             );
                             mostrarAlertDialogErro(context, "Você não tem permissão para isso, faça o login");
+                          } else if (jsonResposta["createAdminEstacio"]["error"] == "email_not_found") {
+                            mostrarAlertDialogErro(context, "Email não encontrado");
+                          } else if (jsonResposta["createAdminEstacio"]["error"] == "admin_already_assigned") {
+                            mostrarAlertDialogErro(context, "Administrador já atribuído");
                           } else {
                             mostrarAlertDialogErro(context, "Erro desconhecido");
                           }
-                        }*/
+                        }
                       }
                     },
                     child: Padding(
@@ -1256,6 +1261,77 @@ class PgCadastroAdminEstacio extends StatelessWidget {
       jsonResposta = result.data;
       return true;
     }
+  }
+}
+
+class HomeAdmEstacio extends StatelessWidget {
+  const HomeAdmEstacio({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/logonometransparente.png',
+                fit: BoxFit.contain,
+                height: 40,
+              ),
+            ],
+          ),
+          automaticallyImplyLeading: false,
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0.0,
+        ),
+        body: Center(
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
+              Text("OPA"),
+          /*new SizedBox(
+              width: 300.0,
+              child: Container(
+                  margin: const EdgeInsets.only(top: 10),
+                  child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => PgListarEstacios()),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 15, right: 30, left: 30, bottom: 15),
+                        child: Text('Listar Estacionamentos'),
+                      )))),
+          new SizedBox(
+              width: 300.0,
+              child: Container(
+                  margin: const EdgeInsets.only(top: 10),
+                  child: ElevatedButton(
+                      onPressed: () {
+                        // AQUI
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 15, right: 30, left: 30, bottom: 15),
+                        child: Text('Analisar novos estacionamentos'),
+                      )))),
+          new SizedBox(
+              width: 300.0,
+              child: Container(
+                  margin: const EdgeInsets.only(top: 10),
+                  child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => PgCriarAdminSistema()),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 15, right: 30, left: 30, bottom: 15),
+                        child: Text('Cadastrar novo Admin Sistema'),
+                      )))),*/
+        ])));
   }
 }
 
