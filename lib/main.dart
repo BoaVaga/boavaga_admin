@@ -226,6 +226,15 @@ class Queries {
   }
 }''';
   }
+
+  aprovarPedidoCadastro(id, cord) {
+    return '''mutation AceitarPedidoCadastro {
+  acceptPedidoCadastro(pedidoId: $id, coordenadas: "($cord)") {
+    success
+    error
+  }
+}''';
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -1398,7 +1407,7 @@ class PgListarPedidosCadastro extends StatelessWidget {
                                           TextButton(
                                             child: const Text('Aprovar'),
                                             onPressed: () {
-
+                                              mostrarAlertDialogAprovarPedidoCadastro(context, jsonResposta["listPedidoCadastro"]["pedidosCadastro"][index]["id"]);
                                             },
                                           ),
                                           const SizedBox(width: 8),
@@ -2034,6 +2043,124 @@ mostrarAlertDialogInformacoes(BuildContext context, info) {
     content: Text(info),
     actions: [
       okButton,
+    ],
+  );
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return alerta;
+    },
+  );
+}
+
+mostrarAlertDialogAprovarPedidoCadastro(BuildContext context, id) {
+  Queries _queries = Queries();
+  GQlConfiguration _graphql = GQlConfiguration();
+
+  var jsonResposta;
+
+  Future aprovarPedidoCadastro(id, cord) async {
+    GraphQLClient _client = _graphql.myQlClient();
+    QueryResult result = await _client.mutate(
+        MutationOptions(document: gql(_queries.aprovarPedidoCadastro(id, cord))));
+
+    if (result.hasException)
+      return false;
+    else {
+      jsonResposta = result.data;
+      return true;
+    }
+  }
+
+  var controllerCordX = TextEditingController();
+  var controllerCordY = TextEditingController();
+  AlertDialog alerta = AlertDialog(
+    title: Text("Aprovar estacionamento ID: " + id),
+    content: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[TextField(
+      controller: controllerCordX,
+      obscureText: false,
+      decoration: InputDecoration(
+          fillColor: Color.fromARGB(20, 20, 20, 20),
+          filled: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15.0),
+            borderSide: BorderSide(
+              width: 0,
+              style: BorderStyle.none,
+            ),
+          ),
+          prefixIcon: Icon(
+            Icons.block,
+            size: 30.0,
+            color: Colors.grey.shade800,
+          ),
+          hintText: 'Cordenada X')),
+          Container(
+              margin: const EdgeInsets.only(top: 20),
+          child: TextField(
+      controller: controllerCordY,
+      obscureText: false,
+      decoration: InputDecoration(
+          fillColor: Color.fromARGB(20, 20, 20, 20),
+          filled: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15.0),
+            borderSide: BorderSide(
+              width: 0,
+              style: BorderStyle.none,
+            ),
+          ),
+          prefixIcon: Icon(
+            Icons.block,
+            size: 30.0,
+            color: Colors.grey.shade800,
+          ),
+          hintText: 'Cordenada Y'))),] ),
+            
+    actions: [
+      ElevatedButton(
+    child: Text("Confirmar"),
+    onPressed: () async {
+      var result = await aprovarPedidoCadastro(id, (controllerCordX.text + " " + controllerCordY.text));
+          if (result) {
+            if (jsonResposta["acceptPedidoCadastro"]["success"] ==true) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => HomeAdmSistema()),
+              );
+              mostrarAlertDialogSucesso(context,
+                  "Pedido aprovado com sucesso");
+            } else {
+              if (jsonResposta["acceptPedidoCadastro"]["error"] ==
+                  "sem_permissao") {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => MyHomePage()),
+                            );
+                            mostrarAlertDialogErro(context,
+                                "Você não tem permissão para isso, faça o login");
+              } else if (jsonResposta["acceptPedidoCadastro"]["error"] ==
+                  "pedido_nao_encontrado") {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => HomeAdmSistema()),
+                            );
+                            mostrarAlertDialogErro(context,
+                                "Pedido de cadastro não encontrado");
+              } else {
+                mostrarAlertDialogErro(
+                    context, "Erro desconhecido");
+              }
+            }
+          }
+    },
+  )
     ],
   );
 
