@@ -392,8 +392,7 @@ class Home extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Center(
+      body: Center(child:SingleChildScrollView(
        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
