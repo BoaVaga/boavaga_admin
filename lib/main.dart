@@ -392,8 +392,10 @@ class Home extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Column(
+      body: SingleChildScrollView(
+        child: Stack(
+          children: <Widget>[
+       Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Image.asset(
@@ -601,7 +603,7 @@ class Home extends State<MyHomePage> {
                 ))
           ],
         ),
-      ),
+          ])),
     );
   }
 
@@ -1266,8 +1268,10 @@ class PgCriarAdminSistema extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0.0,
       ),
-      body: Center(
-        child: Column(
+      body: SingleChildScrollView(
+        child: Stack(
+        children: <Widget>[
+        Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Container(
@@ -1388,7 +1392,7 @@ class PgCriarAdminSistema extends StatelessWidget {
                     ))),
           ],
         ),
-      ),
+        ])),
     );
   }
 
@@ -2030,8 +2034,10 @@ class PgCadastrarEstacio extends State<StateCadastrarEstacio> {
           backgroundColor: Colors.transparent,
           elevation: 0.0,
         ),
-        body: Center(
-            child: Column(
+        body: SingleChildScrollView(
+          child: Stack(
+            children: <Widget>[
+            Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
               Container(
@@ -2335,6 +2341,7 @@ class PgCadastrarEstacio extends State<StateCadastrarEstacio> {
                             top: 15, right: 30, left: 30, bottom: 15),
                         child: Text('Continuar'),
                       ))),
+            ])
             ])));
   }
 
