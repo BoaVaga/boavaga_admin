@@ -3431,7 +3431,7 @@ class PgEditHorarioEstacio extends State<StateEditHorarioEstacio> {
 
   var jsonResposta;
 
-  TextEditingController inputTextDia = TextEditingController();
+  String dropdownDia = 'SP';
   TextEditingController inputTimeAbr = TextEditingController();
   TextEditingController inputTimeFecha = TextEditingController();
 
@@ -3459,27 +3459,38 @@ class PgEditHorarioEstacio extends State<StateEditHorarioEstacio> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   Container(
-                    margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
-                        child: TextField(
-                          controller: inputTextDia,
-                          obscureText: false,
-                          decoration: InputDecoration(
-                              fillColor: Color.fromARGB(20, 20, 20, 20),
-                              filled: true,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15.0),
-                                borderSide: BorderSide(
-                                  width: 0,
-                                  style: BorderStyle.none,
-                                ),
-                              ),
-                              prefixIcon: Icon(
-                                Icons.local_parking,
-                                size: 30.0,
-                                color: Colors.grey.shade800,
-                              ),
-                              hintText: 'Dia da semana')
-                            )),
+                margin: const EdgeInsets.only(top: 5, right: 20, left: 20),
+                child: DropdownButton<String>(
+                  value: dropdownDia,
+                  icon: const Icon(Icons.arrow_downward),
+                  iconSize: 24,
+                  elevation: 16,
+                  style: const TextStyle(color: Colors.grey),
+                  underline: Container(
+                    height: 2,
+                    color: Colors.grey,
+                  ),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      dropdownDia = newValue!;
+                    });
+                  },
+                  items: <String>[
+                    'Segunda',
+                    'Terca',
+                    'Quarta',
+                    'Quinta',
+                    'Sexta',
+                    'Sabado',
+                    'Domingo'
+                  ].map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
+              ),
                             Container(
                         margin: const EdgeInsets.only(top: 25),
                   child:Text("Horário de funcionamento: ", style: TextStyle(fontSize: 14))),
@@ -3535,7 +3546,7 @@ class PgEditHorarioEstacio extends State<StateEditHorarioEstacio> {
                         margin: const EdgeInsets.only(top: 20, bottom: 20),
                         child: ElevatedButton(
                             onPressed: () async {
-                              var result = await editHorarioEstacio(id, inputTextDia.text, getSeconds(inputTimeAbr.text),getSeconds(inputTimeFecha.text));
+                              var result = await editHorarioEstacio(id, dropdownDia, getSeconds(inputTimeAbr.text),getSeconds(inputTimeFecha.text));
                               if (result) {
                                 if (jsonResposta["editEstacioHorarioPadrao"]["success"] ==true) {
                                   Navigator.push(
