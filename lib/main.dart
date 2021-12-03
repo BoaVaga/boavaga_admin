@@ -346,6 +346,17 @@ class Queries {
   }
 }''';
   }
+
+  addAdminToEstacio(email) {
+    return '''mutation addAdminToEstacio {
+  addAdminToEstacio(
+    email: "$email"
+  ) {
+    success
+    error
+  }
+}''';
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -1124,6 +1135,19 @@ class HomeAdmEstacionamento extends StatelessWidget {
                             padding: const EdgeInsets.only(
                                 top: 15, right: 30, left: 30, bottom: 15),
                             child: Text('Valor por hora'),
+                          )))),
+              new SizedBox(
+                  width: 300.0,
+                  child: Container(
+                      margin: const EdgeInsets.only(top: 10),
+                      child: ElevatedButton(
+                          onPressed: () {
+                            mostrarAlertDialogAddAdminToEstacio(context, id);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                                top: 15, right: 30, left: 30, bottom: 15),
+                            child: Text('Adicionar admins ao estacionamento', textAlign: TextAlign.center,),
                           )))),
             ])));
   }
@@ -3925,6 +3949,109 @@ mostrarAlertDialogSucesso(BuildContext context, msgSucesso) {
     content: Text(msgSucesso),
     actions: [
       okButton,
+    ],
+  );
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return alerta;
+    },
+  );
+}
+
+mostrarAlertDialogAddAdminToEstacio(BuildContext context, id) {
+  Queries _queries = Queries();
+  GQlConfiguration _graphql = GQlConfiguration();
+
+  var jsonResposta;
+
+  Future addAdminToEstacio(email) async {
+    GraphQLClient _client = _graphql.myQlClient();
+    QueryResult result = await _client.mutate(
+        MutationOptions(document: gql(_queries.addAdminToEstacio(email))));
+
+    if (result.hasException)
+      return false;
+    else {
+      jsonResposta = result.data;
+      return true;
+    }
+  }
+
+  var controllerEmailAdmin = TextEditingController();
+  AlertDialog alerta = AlertDialog(
+    title: Text("Adicionar admin ao estacionamento:"),
+    content: TextField(
+      controller: controllerEmailAdmin,
+      obscureText: false,
+      decoration: InputDecoration(
+          fillColor: Color.fromARGB(20, 20, 20, 20),
+          filled: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15.0),
+            borderSide: BorderSide(
+              width: 0,
+              style: BorderStyle.none,
+            ),
+          ),
+          prefixIcon: Icon(
+            Icons.block,
+            size: 30.0,
+            color: Colors.grey.shade800,
+          ),
+          hintText: 'Email do admin')),
+            
+    actions: [
+      ElevatedButton(
+    child: Text("Confirmar"),
+    onPressed: () async {
+      var result = await addAdminToEstacio(controllerEmailAdmin.text);
+          if (result) {
+            if (jsonResposta["addAdminToEstacio"]["success"] ==true) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => HomeAdmEstacionamento(id: id)),
+              );
+              mostrarAlertDialogSucesso(context,
+                  "Admin cadastrado com sucesso");
+            } else {
+              if (jsonResposta["addAdminToEstacio"]["error"] ==
+                  "sem_permissao") {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => HomeAdmEstacionamento(id: id)),
+                            );
+                            mostrarAlertDialogErro(context,
+                                "Você não tem permissão para isso");
+              } else if (jsonResposta["addAdminToEstacio"]["error"] ==
+                  "email_not_found") {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => HomeAdmEstacionamento(id: id)),
+                            );
+                            mostrarAlertDialogErro(context,
+                                "Email não encontrado");
+              } else if (jsonResposta["addAdminToEstacio"]["error"] ==
+                  "admin_already_assigned") {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => HomeAdmEstacionamento(id: id)),
+                            );
+                            mostrarAlertDialogErro(context,
+                                "Esse admin já está cadastrado em outro estacionamento");
+              } else {
+                mostrarAlertDialogErro(
+                    context, "Erro desconhecido");
+              }
+            }
+          }
+    },
+  )
     ],
   );
 
