@@ -270,7 +270,7 @@ class Queries {
       tercaAbr: $tercaAbr,
       tercaFec: $tercaFec,
       quartaAbr: $quartaAbr,
-      quartaFec: $quartaAbr,
+      quartaFec: $quartaFec,
       quintaAbr: $quintaAbr,
       quintaFec: $quintaFec,
       sextaAbr: $sextaAbr,
@@ -393,16 +393,17 @@ class Home extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SingleChildScrollView(
-        child: Stack(
-          children: <Widget>[
-       Column(
+       child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            Container(
+              margin: const EdgeInsets.only(top: 100),
+              child:
             Image.asset(
               'assets/logonometransparente.png',
               fit: BoxFit.contain,
               height: 70,
-            ),
+            )),
             Container(
               margin: const EdgeInsets.only(top: 40, right: 20, left: 20),
               child: TextField(
@@ -603,7 +604,7 @@ class Home extends State<MyHomePage> {
                 ))
           ],
         ),
-          ])),
+          ),
     );
   }
 
