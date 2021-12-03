@@ -1266,7 +1266,7 @@ class PgCriarAdminSistema extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0.0,
       ),
-      body: SingleChildScrollView(
+      body: Center(child:SingleChildScrollView(
         child: Stack(
         children: <Widget>[
         Column(
@@ -1391,7 +1391,7 @@ class PgCriarAdminSistema extends StatelessWidget {
           ],
         ),
         ])),
-    );
+    ));
   }
 
   Future criarAdmSistema(nome, email, senha) async {
@@ -2032,7 +2032,7 @@ class PgCadastrarEstacio extends State<StateCadastrarEstacio> {
           backgroundColor: Colors.transparent,
           elevation: 0.0,
         ),
-        body: SingleChildScrollView(
+        body: Center(child:SingleChildScrollView(
           child: Stack(
             children: <Widget>[
             Column(
@@ -2340,8 +2340,8 @@ class PgCadastrarEstacio extends State<StateCadastrarEstacio> {
                         child: Text('Continuar'),
                       ))),
             ])
-            ])));
-  }
+            ]))));
+    }
 
   Future criarPedidoCadastro(
       nome, telefone, rua, estado, cidade, bairro, numero, cep) async {
