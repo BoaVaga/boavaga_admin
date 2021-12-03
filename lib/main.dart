@@ -3431,7 +3431,7 @@ class PgEditHorarioEstacio extends State<StateEditHorarioEstacio> {
 
   var jsonResposta;
 
-  String dropdownDia = 'SP';
+  String dropdownDia = 'Segunda';
   TextEditingController inputTimeAbr = TextEditingController();
   TextEditingController inputTimeFecha = TextEditingController();
 
@@ -3458,6 +3458,7 @@ class PgEditHorarioEstacio extends State<StateEditHorarioEstacio> {
             child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
+                  Text("Tipo de veículo: "),
                   Container(
                 margin: const EdgeInsets.only(top: 5, right: 20, left: 20),
                 child: DropdownButton<String>(
@@ -3491,7 +3492,7 @@ class PgEditHorarioEstacio extends State<StateEditHorarioEstacio> {
                   }).toList(),
                 ),
               ),
-                            Container(
+                  Container(
                         margin: const EdgeInsets.only(top: 25),
                   child:Text("Horário de funcionamento: ", style: TextStyle(fontSize: 14))),
                   Container(
