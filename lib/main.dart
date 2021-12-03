@@ -3996,7 +3996,7 @@ mostrarAlertDialogAddAdminToEstacio(BuildContext context, id) {
             ),
           ),
           prefixIcon: Icon(
-            Icons.block,
+            Icons.person,
             size: 30.0,
             color: Colors.grey.shade800,
           ),
