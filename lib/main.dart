@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:intl/intl.dart';
 
 var tokenAdmin;
 
@@ -9,7 +10,7 @@ void main() {
 
 class GQlConfiguration {
   static HttpLink httplink = HttpLink(
-    "http://192.168.0.114:5000/graphql",
+    "http://192.168.0.117:5000/graphql",
   );
 
   static AuthLink authLink = AuthLink(
@@ -136,6 +137,16 @@ class Queries {
         segundaFec
         tercaAbr
         tercaFec
+        quartaAbr
+				quartaFec
+				quintaAbr
+				quintaFec				
+				sextaAbr				
+				sextaFec
+				sabadoAbr
+				sabadoFec
+				domingoAbr
+				domingoFec
       }
       valoresHora {
         id
@@ -235,6 +246,106 @@ class Queries {
   }
 }''';
   }
+
+  getUser() {
+    return '''query getUser{
+  getUser{
+    adminEstacio{
+      estacionamento{
+        id
+        cadastroTerminado
+      }
+    }
+  }
+}''';
+  }
+
+  finalizarCadastroEstacio(id, vagas, descricao, segundaAbr, segundaFec, tercaAbr, tercaFec, quartaAbr, quartaFec, quintaAbr, quintaFec, sextaAbr, sextaFec, sabAbr, sabFec, domAbr, domFec) {
+    return '''mutation FinalizarCadastroEstacio {
+  finishEstacionamentoCadastro(
+    totalVaga: $vagas,
+    horarioPadrao: {
+      segundaAbr: $segundaAbr,
+      segundaFec: $segundaFec,
+      tercaAbr: $tercaAbr,
+      tercaFec: $tercaFec,
+      quartaAbr: $quartaAbr,
+      quartaFec: $quartaAbr,
+      quintaAbr: $quintaAbr,
+      quintaFec: $quintaAbr,
+      sextaAbr: $sextaAbr,
+      sextaFec: $sextaAbr,
+      sabadoAbr: $sabAbr,
+      sabadoFec: $sabAbr,
+      domingoAbr: $domAbr,
+      domingoFec: $domAbr,
+    },
+    descricao: "$descricao",
+    estacioId: $id
+  ) {
+    success
+    error
+  }
+}''';
+  }
+
+  atualizarQntVaga(qtd) {
+    return '''mutation AtualizarQtdVagaLivre {
+  atualizarQtdVagaLivre(numVaga: $qtd) {
+    success
+    error
+  }
+}''';
+  }
+
+  editEstacionamento(id, nome, telefone, rua, estado, cidade, bairro, numero, cep, totalVagas, descricao) {
+    return '''mutation EditarEstacionamento {
+  editEstacionamento(
+    nome: "$nome"
+    telefone: "$telefone"
+    total_vaga: $totalVagas
+    descricao: "$descricao"
+    endereco: {
+      logradouro: "$rua"
+      estado: $estado
+      cidade: "$cidade"
+      bairro: "$bairro"
+      numero: "$numero"
+      cep: "$cep"
+    }
+  ) {
+    success
+    error
+  }
+}''';
+  }
+
+  editHorarioEstacio(id, hrAbre, hrFecha, dia) {
+    return '''mutation editHorarioEstacio {
+  editEstacioHorarioPadrao(
+    dia: "$dia"
+    horaAbre: $hrAbre
+    horaFecha: $hrFecha
+    estacioId: $id
+  ) {
+    success
+    error
+  }
+}''';
+  }
+
+  editValorEstacio(id, valor, idVeiculo) {
+    return '''mutation editValorEstacio {
+  editEstacioValorHora(
+    veiculoId: $idVeiculo
+    valor: $valor
+    estacioId: $id
+  ) {
+    success
+    error
+  }
+}''';
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -246,7 +357,7 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           scaffoldBackgroundColor: Color.fromARGB(240, 255, 255, 255), // Ligth
         ),
-        home: MyHomePage() // AQUI
+        home: MyHomePage()
         );
   }
 }
@@ -371,12 +482,33 @@ class Home extends State<MyHomePage> {
                             if (result) {
                               if (jsonResposta["login"]["success"] == true) {
                                 tokenAdmin = jsonResposta["login"]["token"];
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          HomeAdmEstacionamento()),
+                                var result = await getUser();
+                                if (result) {
+                                  if (jsonResposta["getUser"]["adminEstacio"]["estacionamento"] == null) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                          PgInicioAdmEstacio()),
                                 );
+                                  } else if(jsonResposta["getUser"]["adminEstacio"]["estacionamento"] != null){
+                                    if(jsonResposta["getUser"]["adminEstacio"]["estacionamento"]["cadastroTerminado"] == true){
+                                        Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    HomeAdmEstacionamento(id: jsonResposta["getUser"]["adminEstacio"]["estacionamento"]["id"])),
+                                      );
+                                    } else if(jsonResposta["getUser"]["adminEstacio"]["estacionamento"]["cadastroTerminado"] == false){
+                                        Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    StateTerminarCadastroEstacio(id: jsonResposta["getUser"]["adminEstacio"]["estacionamento"]["id"])),
+                                      );
+                                    }
+                                  }
+                                }
                               } else {
                                 if (jsonResposta["login"]["error"] ==
                                     "email_nao_encontrado") {
@@ -479,6 +611,19 @@ class Home extends State<MyHomePage> {
     GraphQLClient _client = _graphql.myQlClient();
     QueryResult result = await _client.mutate(MutationOptions(
         document: gql(_queries.loginAdmEstacionamento(email, senha))));
+
+    if (result.hasException)
+      return false;
+    else {
+      jsonResposta = result.data;
+      return true;
+    }
+  }
+
+  Future getUser() async {
+    GraphQLClient _client = _graphql.myQlClient();
+    QueryResult result = await _client.mutate(MutationOptions(
+        document: gql(_queries.getUser())));
 
     if (result.hasException)
       return false;
@@ -893,7 +1038,8 @@ class PgNovaSenha extends StatelessWidget {
 }
 
 class HomeAdmEstacionamento extends StatelessWidget {
-  const HomeAdmEstacionamento({Key? key}) : super(key: key);
+  final id;
+  HomeAdmEstacionamento({Key? key, required this.id}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -924,7 +1070,10 @@ class HomeAdmEstacionamento extends StatelessWidget {
                       margin: const EdgeInsets.only(top: 10),
                       child: ElevatedButton(
                           onPressed: () {
-                            // AQUI alterar email
+                            Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => StateEditEstacio(id: id)),
+                      );
                           },
                           child: Padding(
                             padding: const EdgeInsets.only(
@@ -937,12 +1086,44 @@ class HomeAdmEstacionamento extends StatelessWidget {
                       margin: const EdgeInsets.only(top: 10),
                       child: ElevatedButton(
                           onPressed: () {
-                            // AQUI alterar email
+                            mostrarAlertDialogAttQntVaga(context, id);
                           },
                           child: Padding(
                             padding: const EdgeInsets.only(
                                 top: 15, right: 30, left: 30, bottom: 15),
                             child: Text('Atualizar vagas'),
+                          )))),
+              new SizedBox(
+                  width: 300.0,
+                  child: Container(
+                      margin: const EdgeInsets.only(top: 10),
+                      child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => StateEditHorarioEstacio(id: id)),
+                      );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                                top: 15, right: 30, left: 30, bottom: 15),
+                            child: Text('Horario de funcionamento'),
+                          )))),
+              new SizedBox(
+                  width: 300.0,
+                  child: Container(
+                      margin: const EdgeInsets.only(top: 10),
+                      child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => StateEditValorEstacio(id: id)),
+                      );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                                top: 15, right: 30, left: 30, bottom: 15),
+                            child: Text('Valor por hora'),
                           )))),
             ])));
   }
@@ -1271,14 +1452,14 @@ class PgListarEstacios extends StatelessWidget {
                                             .toString()),
                                     isThreeLine: true,
                                     onTap: () {
-                                      /*Navigator.push(
+                                      Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                            builder: (context) => PageEstacionamento(
+                                            builder: (context) => PgListarTodosEstacios(
                                                 dados: jsonRespostaTodosEstacio[
                                                         "listEstacionamento"][
                                                     "estacionamentos"][index])),
-                                      );*/
+                                      );
                                     },
                                   ),
                                 );
@@ -1314,6 +1495,125 @@ class PgListarEstacios extends StatelessWidget {
       }
       return true;
     }
+  }
+}
+
+class PgListarTodosEstacios extends StatelessWidget {
+  final dados;
+  const PgListarTodosEstacios({Key? key, required this.dados}) : super(key: key);
+
+  String get estaAberto => dados["estaAberto"] ? "Sim" : "Não";
+  String get estaSuspenso => dados["estaSuspenso"] ? "Sim" : "Não";
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/logonometransparente.png',
+                fit: BoxFit.contain,
+                height: 40,
+              ),
+            ],
+          ),
+          automaticallyImplyLeading: false,
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0.0,
+        ),
+        body: Container(
+            child: Column(children: <Widget>[
+          new Container(
+            margin: const EdgeInsets.only(top: 20.0),
+            child: Align(alignment: Alignment.topCenter, child: Text(dados["nome"], style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold))),
+          ),
+          new Container(
+            margin: const EdgeInsets.only(top: 15.0),
+            child: Align(
+                alignment: Alignment.topCenter,
+                child: Text("Endereço: " + dados["endereco"]["logradouro"] + "\nNº " + dados["endereco"]["numero"] + ", " + dados["endereco"]["bairro"] + ", " + dados["endereco"]["cidade"] + ' - ' + dados["endereco"]["estado"],
+                    textAlign: TextAlign.center, style: TextStyle(fontSize: 15))),
+          ),
+          new Container(
+            margin: const EdgeInsets.only(top: 15.0),
+            child: Align(alignment: Alignment.topCenter, child: Text('Telefone: ' + dados["telefone"], textAlign: TextAlign.center, style: TextStyle(fontSize: 15))),
+          ),
+          new Container(
+            margin: const EdgeInsets.only(top: 25.0, left: 25.0, right: 25.0),
+            child: Align(
+                alignment: Alignment.topCenter,
+                child: Text("Descrição: asdcsa", textAlign: TextAlign.center, style: TextStyle(fontSize: 15))),
+          ),
+          new Container(
+            margin: const EdgeInsets.only(top: 25.0, left: 25.0, right: 25.0),
+            child: Align(
+                alignment: Alignment.topCenter,
+                child: Text("Aberto: " + estaAberto + "\n Suspenso: " + estaSuspenso + "\n Vagas Livres: " + dados["qtdVagaLivre"].toString() + " / " + dados["totalVaga"].toString(),
+                    textAlign: TextAlign.center, style: TextStyle(fontSize: 15))),
+          ),
+          new Container(
+            margin: const EdgeInsets.only(top: 25.0, left: 25.0, right: 25.0),
+            child: Align(
+                alignment: Alignment.topCenter,
+                child: Text(
+                    "Horário de Funcionamento: \n Segunda-Feira: " +
+                        formatHHMMSS(dados['horarioPadrao']['segundaAbr']) +
+                        " às " +
+                        formatHHMMSS(dados["horarioPadrao"]["segundaFec"]) +
+                        "\n Terça-Feira: " +
+                        formatHHMMSS(dados["horarioPadrao"]["tercaAbr"]) +
+                        " às " +
+                        formatHHMMSS(dados["horarioPadrao"]["tercaFec"]) +
+                        "\n Quarta-Feira: " +
+                        formatHHMMSS(dados["horarioPadrao"]["quartaAbr"]) +
+                        " às " +
+                        formatHHMMSS(dados["horarioPadrao"]["quartaFec"]) +
+                        "\n Quinta-Feira: " +
+                        formatHHMMSS(dados["horarioPadrao"]["quintaAbr"]) +
+                        " às " +
+                        formatHHMMSS(dados["horarioPadrao"]["quintaFec"]) +
+                        "\n Sexta-Feira: " +
+                        formatHHMMSS(dados["horarioPadrao"]["sextaAbr"]) +
+                        " às " +
+                        formatHHMMSS(dados["horarioPadrao"]["sextaFec"]) +
+                        "\n Sábado: " +
+                        formatHHMMSS(dados["horarioPadrao"]["sabadoAbr"]) +
+                        " às " +
+                        formatHHMMSS(dados["horarioPadrao"]["sabadoFec"]) +
+                        "\n Domingo: " +
+                        formatHHMMSS(dados["horarioPadrao"]["domingoAbr"]) +
+                        " às " +
+                        formatHHMMSS(dados["horarioPadrao"]["domingoFec"]),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 15))),
+          ),
+          new Container(
+              margin: const EdgeInsets.only(top: 25.0, bottom: 5.0),
+              child: Center(
+                child: Text("Valores: "),
+              )),
+          Center(
+            child: ListView.builder(
+              shrinkWrap: true,
+              scrollDirection: Axis.vertical, // Axis.horizontal for horizontal list view.
+              itemCount: dados["valoresHora"].length,
+              itemBuilder: (ctx, index) {
+                return Align(child: Text("Tipo: " + dados["valoresHora"][index]["veiculo"] + "   Valor: " + dados["valoresHora"][index]["valor"]));
+              },
+            ),
+          ),
+          Container(
+              margin: const EdgeInsets.only(top: 15.0, bottom: 25.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text('Voltar', style: TextStyle(fontSize: 18)),
+              ))
+        ])));
   }
 }
 
@@ -2030,6 +2330,1231 @@ class PgCadastrarEstacio extends State<StateCadastrarEstacio> {
   }
 }
 
+class StateTerminarCadastroEstacio extends StatefulWidget {
+  final id;
+  StateTerminarCadastroEstacio({Key? key, required this.id}) : super(key: key);
+  @override
+  PgTerminarCadastroEstacio createState() => PgTerminarCadastroEstacio(id: id);
+}
+
+class PgTerminarCadastroEstacio extends State<StateTerminarCadastroEstacio> {
+  Queries _queries = Queries();
+
+  GQlConfiguration _graphql = GQlConfiguration();
+
+  final id;
+  var jsonResposta;
+  PgTerminarCadastroEstacio({required this.id}) : super();
+
+  final controllerTotalVaga = TextEditingController();
+  final controllerDescricao = TextEditingController();
+  TextEditingController inputTimeAbrSegunda = TextEditingController();
+  TextEditingController inputTimeFecSegunda = TextEditingController();
+  TextEditingController inputTimeAbrTerca = TextEditingController();
+  TextEditingController inputTimeFecTerca = TextEditingController();
+  TextEditingController inputTimeAbrQuarta = TextEditingController();
+  TextEditingController inputTimeFecQuarta = TextEditingController();
+  TextEditingController inputTimeAbrQuinta = TextEditingController();
+  TextEditingController inputTimeFecQuinta = TextEditingController();
+  TextEditingController inputTimeAbrSexta = TextEditingController();
+  TextEditingController inputTimeFecSexta = TextEditingController();
+  TextEditingController inputTimeAbrSabad = TextEditingController();
+  TextEditingController inputTimeFecSabad = TextEditingController();
+  TextEditingController inputTimeAbrDoming = TextEditingController();
+  TextEditingController inputTimeFecDoming = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/logonometransparente.png',
+                fit: BoxFit.contain,
+                height: 40,
+              ),
+            ],
+          ),
+          automaticallyImplyLeading: false,
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0.0,
+        ),
+        body: SingleChildScrollView(
+child: Stack(
+    children: <Widget>[
+      Center(
+            child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text("Finalize o cadastro de seu estacionamento!", style: TextStyle(fontSize: 16)),
+                  Container(
+                    margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+                        child: TextField(
+                          controller: controllerTotalVaga,
+                          obscureText: false,
+                          decoration: InputDecoration(
+                              fillColor: Color.fromARGB(20, 20, 20, 20),
+                              filled: true,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(15.0),
+                                borderSide: BorderSide(
+                                  width: 0,
+                                  style: BorderStyle.none,
+                                ),
+                              ),
+                              prefixIcon: Icon(
+                                Icons.local_parking,
+                                size: 30.0,
+                                color: Colors.grey.shade800,
+                              ),
+                              hintText: 'Total de vagas'))),
+                  Container(
+                    margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+                        child: TextField(
+                          controller: controllerDescricao,
+                          obscureText: false,
+                          decoration: InputDecoration(
+                              fillColor: Color.fromARGB(20, 20, 20, 20),
+                              filled: true,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(15.0),
+                                borderSide: BorderSide(
+                                  width: 0,
+                                  style: BorderStyle.none,
+                                ),
+                              ),
+                              prefixIcon: Icon(
+                                Icons.local_parking,
+                                size: 30.0,
+                                color: Colors.grey.shade800,
+                              ),
+                              hintText: 'Descrição')
+                            )),
+                            Container(
+                        margin: const EdgeInsets.only(top: 25),
+                  child:Text("Horário de funcionamento: ", style: TextStyle(fontSize: 14))),
+                  Container(
+                        margin: const EdgeInsets.only(top: 25),
+                  child:Text("Segunda-Feira: ", style: TextStyle(fontSize: 14))),
+                  Container(
+                        margin: const EdgeInsets.only(right: 25, left: 25),
+                  child: TextField(
+                controller: inputTimeAbrSegunda,
+                decoration: InputDecoration( 
+                   icon: Icon(Icons.timer),
+                   labelText: "Abertura"
+                ),
+                readOnly: true, 
+                onTap: () async {
+                  TimeOfDay? pickedTime =  await showTimePicker(
+                          initialTime: TimeOfDay.now(),
+                          context: context,
+                      );
+                  if(pickedTime != null ){
+                      DateTime parsedTime = DateFormat.jm().parse(pickedTime.format(context).toString());
+                      String formattedTime = DateFormat('HH:mm').format(parsedTime);
+                      setState(() {
+                        inputTimeAbrSegunda.text = formattedTime;
+                      });
+                  }
+                },
+             )),
+             Container(
+                        margin: const EdgeInsets.only(right: 25, left: 25),
+                  child: TextField(
+                controller: inputTimeFecSegunda,
+                decoration: InputDecoration( 
+                   icon: Icon(Icons.timer),
+                   labelText: "Fechamento"
+                ),
+                readOnly: true, 
+                onTap: () async {
+                  TimeOfDay? pickedTime =  await showTimePicker(
+                          initialTime: TimeOfDay.now(),
+                          context: context,
+                      );
+                  if(pickedTime != null ){
+                      DateTime parsedTime = DateFormat.jm().parse(pickedTime.format(context).toString());
+                      String formattedTime = DateFormat('HH:mm').format(parsedTime);
+                      setState(() {
+                        inputTimeFecSegunda.text = formattedTime;
+                      });
+                  }
+                },
+             )),
+             Container(
+                        margin: const EdgeInsets.only(top: 25),
+                  child:Text("Terça-Feira: ", style: TextStyle(fontSize: 14))),
+                  Container(
+                        margin: const EdgeInsets.only(right: 25, left: 25),
+                  child: TextField(
+                controller: inputTimeAbrTerca,
+                decoration: InputDecoration( 
+                   icon: Icon(Icons.timer),
+                   labelText: "Abertura"
+                ),
+                readOnly: true, 
+                onTap: () async {
+                  TimeOfDay? pickedTime =  await showTimePicker(
+                          initialTime: TimeOfDay.now(),
+                          context: context,
+                      );
+                  if(pickedTime != null ){
+                      DateTime parsedTime = DateFormat.jm().parse(pickedTime.format(context).toString());
+                      String formattedTime = DateFormat('HH:mm').format(parsedTime);
+                      setState(() {
+                        inputTimeAbrTerca.text = formattedTime;
+                      });
+                  }
+                },
+             )),
+             Container(
+                        margin: const EdgeInsets.only(right: 25, left: 25),
+                  child: TextField(
+                controller: inputTimeFecTerca,
+                decoration: InputDecoration( 
+                   icon: Icon(Icons.timer),
+                   labelText: "Fechamento"
+                ),
+                readOnly: true, 
+                onTap: () async {
+                  TimeOfDay? pickedTime =  await showTimePicker(
+                          initialTime: TimeOfDay.now(),
+                          context: context,
+                      );
+                  if(pickedTime != null ){
+                      DateTime parsedTime = DateFormat.jm().parse(pickedTime.format(context).toString());
+                      String formattedTime = DateFormat('HH:mm').format(parsedTime);
+                      setState(() {
+                        inputTimeFecTerca.text = formattedTime;
+                      });
+                  }
+                },
+             )),
+             Container(
+                        margin: const EdgeInsets.only(top: 25),
+                  child:Text("Quarta-Feira: ", style: TextStyle(fontSize: 14))),
+                  Container(
+                        margin: const EdgeInsets.only(right: 25, left: 25),
+                  child: TextField(
+                controller: inputTimeAbrQuarta,
+                decoration: InputDecoration( 
+                   icon: Icon(Icons.timer),
+                   labelText: "Abertura"
+                ),
+                readOnly: true, 
+                onTap: () async {
+                  TimeOfDay? pickedTime =  await showTimePicker(
+                          initialTime: TimeOfDay.now(),
+                          context: context,
+                      );
+                  if(pickedTime != null ){
+                      DateTime parsedTime = DateFormat.jm().parse(pickedTime.format(context).toString());
+                      String formattedTime = DateFormat('HH:mm').format(parsedTime);
+                      setState(() {
+                        inputTimeAbrQuarta.text = formattedTime;
+                      });
+                  }
+                },
+             )),
+             Container(
+                        margin: const EdgeInsets.only(right: 25, left: 25),
+                  child: TextField(
+                controller: inputTimeFecQuarta,
+                decoration: InputDecoration( 
+                   icon: Icon(Icons.timer),
+                   labelText: "Fechamento"
+                ),
+                readOnly: true, 
+                onTap: () async {
+                  TimeOfDay? pickedTime =  await showTimePicker(
+                          initialTime: TimeOfDay.now(),
+                          context: context,
+                      );
+                  if(pickedTime != null ){
+                      DateTime parsedTime = DateFormat.jm().parse(pickedTime.format(context).toString());
+                      String formattedTime = DateFormat('HH:mm').format(parsedTime);
+                      setState(() {
+                        inputTimeFecQuarta.text = formattedTime;
+                      });
+                  }
+                },
+             )),
+             Container(
+                        margin: const EdgeInsets.only(top: 25),
+                  child:Text("Quinta-Feira: ", style: TextStyle(fontSize: 14))),
+                  Container(
+                        margin: const EdgeInsets.only(right: 25, left: 25),
+                  child: TextField(
+                controller: inputTimeAbrQuinta,
+                decoration: InputDecoration( 
+                   icon: Icon(Icons.timer),
+                   labelText: "Abertura"
+                ),
+                readOnly: true, 
+                onTap: () async {
+                  TimeOfDay? pickedTime =  await showTimePicker(
+                          initialTime: TimeOfDay.now(),
+                          context: context,
+                      );
+                  if(pickedTime != null ){
+                      DateTime parsedTime = DateFormat.jm().parse(pickedTime.format(context).toString());
+                      String formattedTime = DateFormat('HH:mm').format(parsedTime);
+                      setState(() {
+                        inputTimeAbrQuinta.text = formattedTime;
+                      });
+                  }
+                },
+             )),
+             Container(
+                        margin: const EdgeInsets.only(right: 25, left: 25),
+                  child: TextField(
+                controller: inputTimeFecQuinta,
+                decoration: InputDecoration( 
+                   icon: Icon(Icons.timer),
+                   labelText: "Fechamento"
+                ),
+                readOnly: true, 
+                onTap: () async {
+                  TimeOfDay? pickedTime =  await showTimePicker(
+                          initialTime: TimeOfDay.now(),
+                          context: context,
+                      );
+                  if(pickedTime != null ){
+                      DateTime parsedTime = DateFormat.jm().parse(pickedTime.format(context).toString());
+                      String formattedTime = DateFormat('HH:mm').format(parsedTime);
+                      setState(() {
+                        inputTimeFecQuinta.text = formattedTime;
+                      });
+                  }
+                },
+             )),
+             Container(
+                        margin: const EdgeInsets.only(top: 25),
+                  child:Text("Sexta-Feira: ", style: TextStyle(fontSize: 14))),
+                  Container(
+                        margin: const EdgeInsets.only(right: 25, left: 25),
+                  child: TextField(
+                controller: inputTimeAbrSexta,
+                decoration: InputDecoration( 
+                   icon: Icon(Icons.timer),
+                   labelText: "Abertura"
+                ),
+                readOnly: true, 
+                onTap: () async {
+                  TimeOfDay? pickedTime =  await showTimePicker(
+                          initialTime: TimeOfDay.now(),
+                          context: context,
+                      );
+                  if(pickedTime != null ){
+                      DateTime parsedTime = DateFormat.jm().parse(pickedTime.format(context).toString());
+                      String formattedTime = DateFormat('HH:mm').format(parsedTime);
+                      setState(() {
+                        inputTimeAbrSexta.text = formattedTime;
+                      });
+                  }
+                },
+             )),
+             Container(
+                        margin: const EdgeInsets.only(right: 25, left: 25),
+                  child: TextField(
+                controller: inputTimeFecSexta,
+                decoration: InputDecoration( 
+                   icon: Icon(Icons.timer),
+                   labelText: "Fechamento"
+                ),
+                readOnly: true, 
+                onTap: () async {
+                  TimeOfDay? pickedTime =  await showTimePicker(
+                          initialTime: TimeOfDay.now(),
+                          context: context,
+                      );
+                  if(pickedTime != null ){
+                      DateTime parsedTime = DateFormat.jm().parse(pickedTime.format(context).toString());
+                      String formattedTime = DateFormat('HH:mm').format(parsedTime);
+                      setState(() {
+                        inputTimeFecSexta.text = formattedTime;
+                      });
+                  }
+                },
+             )),
+             Container(
+                        margin: const EdgeInsets.only(top: 25),
+                  child:Text("Sábado: ", style: TextStyle(fontSize: 14))),
+                  Container(
+                        margin: const EdgeInsets.only(right: 25, left: 25),
+                  child: TextField(
+                controller: inputTimeAbrSabad,
+                decoration: InputDecoration( 
+                   icon: Icon(Icons.timer),
+                   labelText: "Abertura"
+                ),
+                readOnly: true, 
+                onTap: () async {
+                  TimeOfDay? pickedTime =  await showTimePicker(
+                          initialTime: TimeOfDay.now(),
+                          context: context,
+                      );
+                  if(pickedTime != null ){
+                      DateTime parsedTime = DateFormat.jm().parse(pickedTime.format(context).toString());
+                      String formattedTime = DateFormat('HH:mm').format(parsedTime);
+                      setState(() {
+                        inputTimeAbrSabad.text = formattedTime;
+                      });
+                  }
+                },
+             )),
+             Container(
+                        margin: const EdgeInsets.only(right: 25, left: 25),
+                  child: TextField(
+                controller: inputTimeFecSabad,
+                decoration: InputDecoration( 
+                   icon: Icon(Icons.timer),
+                   labelText: "Fechamento"
+                ),
+                readOnly: true, 
+                onTap: () async {
+                  TimeOfDay? pickedTime =  await showTimePicker(
+                          initialTime: TimeOfDay.now(),
+                          context: context,
+                      );
+                  if(pickedTime != null ){
+                      DateTime parsedTime = DateFormat.jm().parse(pickedTime.format(context).toString());
+                      String formattedTime = DateFormat('HH:mm').format(parsedTime);
+                      setState(() {
+                        inputTimeFecSabad.text = formattedTime;
+                      });
+                  }
+                },
+             )),
+             Container(
+                        margin: const EdgeInsets.only(top: 25),
+                  child:Text("Domingo: ", style: TextStyle(fontSize: 14))),
+                  Container(
+                        margin: const EdgeInsets.only(right: 25, left: 25),
+                  child: TextField(
+                controller: inputTimeAbrDoming,
+                decoration: InputDecoration( 
+                   icon: Icon(Icons.timer),
+                   labelText: "Abertura"
+                ),
+                readOnly: true, 
+                onTap: () async {
+                  TimeOfDay? pickedTime =  await showTimePicker(
+                          initialTime: TimeOfDay.now(),
+                          context: context,
+                      );
+                  if(pickedTime != null ){
+                      DateTime parsedTime = DateFormat.jm().parse(pickedTime.format(context).toString());
+                      String formattedTime = DateFormat('HH:mm').format(parsedTime);
+                      setState(() {
+                        inputTimeAbrDoming.text = formattedTime;
+                      });
+                  }
+                },
+             )),
+             Container(
+                        margin: const EdgeInsets.only(right: 25, left: 25),
+                  child: TextField(
+                controller: inputTimeFecDoming,
+                decoration: InputDecoration( 
+                   icon: Icon(Icons.timer),
+                   labelText: "Fechamento"
+                ),
+                readOnly: true, 
+                onTap: () async {
+                  TimeOfDay? pickedTime =  await showTimePicker(
+                          initialTime: TimeOfDay.now(),
+                          context: context,
+                      );
+                  if(pickedTime != null ){
+                      DateTime parsedTime = DateFormat.jm().parse(pickedTime.format(context).toString());
+                      String formattedTime = DateFormat('HH:mm').format(parsedTime);
+                      setState(() {
+                        inputTimeFecDoming.text = formattedTime;
+                      });
+                  }
+                },
+             )),
+                  new SizedBox(
+                    width: 200.0,
+                    child: Container(
+                        margin: const EdgeInsets.only(top: 20, bottom: 20),
+                        child: ElevatedButton(
+                            onPressed: () async {
+                              var result = await finalizarCadastroEstacio(id, controllerTotalVaga.text, controllerDescricao.text, getSeconds(inputTimeAbrSegunda.text),getSeconds(inputTimeFecSegunda.text),getSeconds(inputTimeAbrTerca.text),getSeconds(inputTimeFecTerca.text),getSeconds(inputTimeAbrQuarta.text),getSeconds(inputTimeFecQuarta.text),getSeconds(inputTimeAbrQuinta.text),getSeconds(inputTimeFecQuinta.text),getSeconds(inputTimeAbrSexta.text),getSeconds(inputTimeFecSexta.text),getSeconds(inputTimeAbrSabad.text),getSeconds(inputTimeFecSabad.text),getSeconds(inputTimeAbrDoming.text),getSeconds(inputTimeFecDoming.text));
+                              if (result) {
+                                if (jsonResposta["finishEstacionamentoCadastro"]["success"] ==true) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => MyHomePage()),
+                                  );
+                                  mostrarAlertDialogSucesso(context,"Cadastro feito com sucesso, por favor, faça o login");
+                                } else {
+                                  if (jsonResposta["finishEstacionamentoCadastro"]["error"] =="hora_padrao_fecha_antes_de_abrir") {
+                                    mostrarAlertDialogErro(context, "Horários inválidos");
+                                  } else if (jsonResposta["finishEstacionamentoCadastro"]["error"] =="sem_permissao") {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => MyHomePage()),
+                                    );
+                                    mostrarAlertDialogErro(context,"Você não tem permissão para isso, faça o login");
+                                  } else if (jsonResposta["finishEstacionamentoCadastro"]["error"] =="hora_padrao_dia_incompleto") {
+                                    mostrarAlertDialogErro(context, "Preencha todos os horários");
+                                  } else {
+                                    mostrarAlertDialogErro(context, "Erro desconhecido");
+                                  } 
+                                }
+                              }
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                  top: 15, right: 30, left: 30, bottom: 15),
+                              child: Text('Finalizar'),
+                            )
+                          )
+                        )
+                      ),
+                    ]
+                  )
+                )]))
+              );
+  }
+
+  Future finalizarCadastroEstacio(id, vagas, descricao, segundaAbr, segundaFec, tercaAbr, tercaFec, quartaAbr, quartaFec, quintaAbr, quintaFec, sextaAbr, sextaFec, sabAbr, sabFec, domAbr, domFec) async {
+    GraphQLClient _client = _graphql.myQlClient();
+    QueryResult result = await _client.mutate(
+        MutationOptions(document: gql(_queries.finalizarCadastroEstacio(id, vagas, descricao, segundaAbr, segundaFec, tercaAbr, tercaFec, quartaAbr, quartaFec, quintaAbr, quintaFec, sextaAbr, sextaFec, sabAbr, sabFec, domAbr, domFec))));
+
+    if (result.hasException)
+      return false;
+    else {
+      jsonResposta = result.data;
+      return true;
+    }
+  }
+}
+
+class StateEditEstacio extends StatefulWidget {
+  final id;
+  StateEditEstacio({Key? key, required this.id}) : super(key: key);
+  @override
+  PgEditEstacio createState() => PgEditEstacio(id: id);
+}
+
+class PgEditEstacio extends State<StateEditEstacio> {
+  final id;
+  PgEditEstacio({required this.id}) : super();
+
+  Queries _queries = Queries();
+  GQlConfiguration _graphql = GQlConfiguration();
+
+  var jsonResposta;
+
+  final controllerTextNomeEstacio = TextEditingController();
+  final controllerTextTelefoneEstacio = TextEditingController();
+  final controllerTextRuaEstacio = TextEditingController();
+  String dropdownEstado = 'SP';
+  final controllerTextCidadeEstacio = TextEditingController();
+  final controllerTextBairroEstacio = TextEditingController();
+  final controllerTextNumeroEstacio = TextEditingController();
+  final controllerTextCepEstacio = TextEditingController();
+  final controllerTextTotalVagaEstacio = TextEditingController();
+  final controllerTextDescricaoEstacio = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/logonometransparente.png',
+                fit: BoxFit.contain,
+                height: 40,
+              ),
+            ],
+          ),
+          automaticallyImplyLeading: false,
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0.0,
+        ),
+        body: Center(
+            child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+              Container(
+                margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+                child: TextField(
+                    controller: controllerTextNomeEstacio,
+                    obscureText: false,
+                    decoration: InputDecoration(
+                        fillColor: Color.fromARGB(20, 20, 20, 20),
+                        filled: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                          borderSide: BorderSide(
+                            width: 0,
+                            style: BorderStyle.none,
+                          ),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.local_parking,
+                          size: 30.0,
+                          color: Colors.grey.shade800,
+                        ),
+                        hintText: 'Nome do estacionamento')),
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+                child: TextField(
+                    controller: controllerTextTelefoneEstacio,
+                    obscureText: false,
+                    decoration: InputDecoration(
+                        fillColor: Color.fromARGB(20, 20, 20, 20),
+                        filled: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                          borderSide: BorderSide(
+                            width: 0,
+                            style: BorderStyle.none,
+                          ),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.local_phone,
+                          size: 30.0,
+                          color: Colors.grey.shade800,
+                        ),
+                        hintText: 'Telefone do estacionamento')),
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+                child: TextField(
+                    controller: controllerTextRuaEstacio,
+                    obscureText: false,
+                    decoration: InputDecoration(
+                        fillColor: Color.fromARGB(20, 20, 20, 20),
+                        filled: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                          borderSide: BorderSide(
+                            width: 0,
+                            style: BorderStyle.none,
+                          ),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.edit_location,
+                          size: 30.0,
+                          color: Colors.grey.shade800,
+                        ),
+                        hintText: 'Rua do estacionamento')),
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+                child: Text("Estado do estacionamento"),
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: 5, right: 20, left: 20),
+                child: DropdownButton<String>(
+                  value: dropdownEstado,
+                  icon: const Icon(Icons.arrow_downward),
+                  iconSize: 24,
+                  elevation: 16,
+                  style: const TextStyle(color: Colors.grey),
+                  underline: Container(
+                    height: 2,
+                    color: Colors.grey,
+                  ),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      dropdownEstado = newValue!;
+                    });
+                  },
+                  items: <String>[
+                    'AC',
+                    'AL',
+                    'AP',
+                    'AM',
+                    'BA',
+                    'CE',
+                    'DF',
+                    'ES',
+                    'GO',
+                    'MA',
+                    'MT',
+                    'MS',
+                    'MG',
+                    'PA',
+                    'PB',
+                    'PR',
+                    'PE',
+                    'PI',
+                    'RJ',
+                    'RN',
+                    'RS',
+                    'RO',
+                    'RR',
+                    'SC',
+                    'SP',
+                    'SE',
+                    'TO'
+                  ].map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+                child: TextField(
+                    controller: controllerTextCidadeEstacio,
+                    obscureText: false,
+                    decoration: InputDecoration(
+                        fillColor: Color.fromARGB(20, 20, 20, 20),
+                        filled: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                          borderSide: BorderSide(
+                            width: 0,
+                            style: BorderStyle.none,
+                          ),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.edit_location,
+                          size: 30.0,
+                          color: Colors.grey.shade800,
+                        ),
+                        hintText: 'Cidade do estacionamento')),
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+                child: TextField(
+                    controller: controllerTextBairroEstacio,
+                    obscureText: false,
+                    decoration: InputDecoration(
+                        fillColor: Color.fromARGB(20, 20, 20, 20),
+                        filled: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                          borderSide: BorderSide(
+                            width: 0,
+                            style: BorderStyle.none,
+                          ),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.edit_location,
+                          size: 30.0,
+                          color: Colors.grey.shade800,
+                        ),
+                        hintText: 'Bairro do estacionamento')),
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+                child: TextField(
+                    controller: controllerTextNumeroEstacio,
+                    obscureText: false,
+                    decoration: InputDecoration(
+                        fillColor: Color.fromARGB(20, 20, 20, 20),
+                        filled: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                          borderSide: BorderSide(
+                            width: 0,
+                            style: BorderStyle.none,
+                          ),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.edit_location,
+                          size: 30.0,
+                          color: Colors.grey.shade800,
+                        ),
+                        hintText: 'Número do estacionamento')),
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+                child: TextField(
+                    controller: controllerTextCepEstacio,
+                    obscureText: false,
+                    decoration: InputDecoration(
+                        fillColor: Color.fromARGB(20, 20, 20, 20),
+                        filled: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                          borderSide: BorderSide(
+                            width: 0,
+                            style: BorderStyle.none,
+                          ),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.edit_location,
+                          size: 30.0,
+                          color: Colors.grey.shade800,
+                        ),
+                        hintText: 'CEP do estacionamento')),
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+                child: TextField(
+                    controller: controllerTextTotalVagaEstacio,
+                    obscureText: false,
+                    decoration: InputDecoration(
+                        fillColor: Color.fromARGB(20, 20, 20, 20),
+                        filled: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                          borderSide: BorderSide(
+                            width: 0,
+                            style: BorderStyle.none,
+                          ),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.local_parking,
+                          size: 30.0,
+                          color: Colors.grey.shade800,
+                        ),
+                        hintText: 'Total de vagas'))),
+              Container(
+                margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+                child: TextField(
+                    controller: controllerTextDescricaoEstacio,
+                    obscureText: false,
+                    decoration: InputDecoration(
+                        fillColor: Color.fromARGB(20, 20, 20, 20),
+                        filled: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15.0),
+                          borderSide: BorderSide(
+                            width: 0,
+                            style: BorderStyle.none,
+                          ),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.local_parking,
+                          size: 30.0,
+                          color: Colors.grey.shade800,
+                        ),
+                        hintText: 'Descrição do estacionamento'))),
+              Container(
+                  margin: const EdgeInsets.only(top: 30),
+                  child: ElevatedButton(
+                      onPressed: () async {
+                        var result = await editEstacionamento(id,
+                            controllerTextNomeEstacio.text,
+                            controllerTextTelefoneEstacio.text,
+                            controllerTextRuaEstacio.text,
+                            dropdownEstado,
+                            controllerTextCidadeEstacio.text,
+                            controllerTextBairroEstacio.text,
+                            controllerTextNumeroEstacio.text,
+                            controllerTextCepEstacio.text,
+                            controllerTextTotalVagaEstacio.text,
+                            controllerTextDescricaoEstacio.text);
+                        if (result) {
+                          if (jsonResposta["editEstacionamento"]["success"] == true) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => HomeAdmEstacionamento(id: id)),
+                            );
+                            mostrarAlertDialogSucesso(context,"Alterações feitas com sucesso");
+                          } else {
+                            if (jsonResposta["editEstacionamento"]["error"] =="total_vaga_nao_positivo") {
+                              mostrarAlertDialogErro(context, "Total de vagas não é positivo");
+                            } else if (jsonResposta["editEstacionamento"]["error"] =="sem_permissao") {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => MyHomePage()),
+                              );
+                              mostrarAlertDialogErro(context,"Você não tem permissão para isso, faça o login");
+                            } else if (jsonResposta["editEstacionamento"]["error"] =="descricao_muito_grande") {
+                              mostrarAlertDialogErro(context,"A descrição de seu estacionamento é muito grande");
+                            } else if (jsonResposta["editEstacionamento"]["error"] =="nome_muito_grande") {
+                              mostrarAlertDialogErro(context,"O nome de seu estacionamento é muito grande");
+                            } else if (jsonResposta["editEstacionamento"]["error"] =="cadastro_nao_terminado") {
+                              mostrarAlertDialogErro(context,"O cadastro de seu estacionamento não foi finalizado");
+                            } else if (jsonResposta["editEstacionamento"]["error"] =="telefone_muito_grande") {
+                              mostrarAlertDialogErro(context,"O telefone de seu estacionamento é muito grande");
+                            } else if (jsonResposta["editEstacionamento"]["error"] =="telefone_formato_invalido") {
+                              mostrarAlertDialogErro(context,"O telefone de seu estacionamento é inválido");
+                            } else if (jsonResposta["editEstacionamento"]["error"] =="telefone_sem_cod_internacional") {
+                              mostrarAlertDialogErro(context,"O telefone de seu estacionamento não possui código internacional");
+                            } else {
+                              mostrarAlertDialogErro(context, "Erro desconhecido");
+                            }
+                          }
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                            top: 15, right: 30, left: 30, bottom: 15),
+                        child: Text('Alterar'),
+                      ))),
+            ])));
+  }
+
+  Future editEstacionamento(
+      id, nome, telefone, rua, estado, cidade, bairro, numero, cep, totalVagas, descricao) async {
+    GraphQLClient _client = _graphql.myQlClient();
+    QueryResult result = await _client.mutate(MutationOptions(
+        document: gql(_queries.editEstacionamento(
+            id, nome, telefone, rua, estado, cidade, bairro, numero, cep, totalVagas, descricao))));
+
+    if (result.hasException)
+      return false;
+    else {
+      jsonResposta = result.data;
+      return true;
+    }
+  }
+}
+
+class StateEditValorEstacio extends StatefulWidget {
+  final id;
+  StateEditValorEstacio({Key? key, required this.id}) : super(key: key);
+  @override
+  PgEditValorEstacio createState() => PgEditValorEstacio(id: id);
+}
+
+class PgEditValorEstacio extends State<StateEditValorEstacio> {
+  final id;
+  PgEditValorEstacio({required this.id}) : super();
+
+  Queries _queries = Queries();
+  GQlConfiguration _graphql = GQlConfiguration();
+
+  var jsonResposta;
+
+  String dropdownVeiculo = '1 - Carro';
+  TextEditingController inputValor = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/logonometransparente.png',
+                fit: BoxFit.contain,
+                height: 40,
+              ),
+            ],
+          ),
+          automaticallyImplyLeading: false,
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0.0,
+        ),
+        body: Center(
+            child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text("Tipo de veículo: "),
+                  Container(
+                margin: const EdgeInsets.only(top: 5, right: 20, left: 20),
+                child: DropdownButton<String>(
+                  value: dropdownVeiculo,
+                  icon: const Icon(Icons.arrow_downward),
+                  iconSize: 24,
+                  elevation: 16,
+                  style: const TextStyle(color: Colors.grey),
+                  underline: Container(
+                    height: 2,
+                    color: Colors.grey,
+                  ),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      dropdownVeiculo = newValue!;
+                    });
+                  },
+                  items: <String>[
+                    '1 - Carro',
+                    '2 - Moto',
+                    '3 - Van',
+                    '4 - Ônibus',
+                    '5 - Outros'
+                  ].map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
+              ),
+             Container(
+                    margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+                        child: TextField(
+                          controller: inputValor,
+                          obscureText: false,
+                          decoration: InputDecoration(
+                              fillColor: Color.fromARGB(20, 20, 20, 20),
+                              filled: true,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(15.0),
+                                borderSide: BorderSide(
+                                  width: 0,
+                                  style: BorderStyle.none,
+                                ),
+                              ),
+                              prefixIcon: Icon(
+                                Icons.local_parking,
+                                size: 30.0,
+                                color: Colors.grey.shade800,
+                              ),
+                              hintText: 'Valor')
+                            )),
+                  new SizedBox(
+                    width: 200.0,
+                    child: Container(
+                        margin: const EdgeInsets.only(top: 20, bottom: 20),
+                        child: ElevatedButton(
+                            onPressed: () async {
+                              var result = await editValorEstacio(id, inputValor.text, dropdownVeiculo);
+                              if (result) {
+                                if (jsonResposta["editEstacioValorHora"]["success"] ==true) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => HomeAdmEstacionamento(id: id)),
+                                  );
+                                  mostrarAlertDialogSucesso(context,"Dados alterados com sucesso");
+                                } else {
+                                  if (jsonResposta["editEstacioValorHora"]["error"] =="valor_nao_positivo") {
+                                    mostrarAlertDialogErro(context, "Esse valor não é positivo");
+                                  } else if (jsonResposta["editEstacioValorHora"]["error"] =="sem_permissao") {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => MyHomePage()),
+                                    );
+                                    mostrarAlertDialogErro(context,"Você não tem permissão para isso, faça o login");
+                                  } else if (jsonResposta["editEstacioValorHora"]["error"] =="veiculo_nao_encontrado") {
+                                    mostrarAlertDialogErro(context, "Veículo não encontrado");
+                                  } else if (jsonResposta["editEstacioValorHora"]["error"] =="ERRO_ESTACIO_NAO_ENCONTRADO") {
+                                    mostrarAlertDialogErro(context, "Estacionamento não encontrado");
+                                  } else {
+                                    mostrarAlertDialogErro(context, "Erro desconhecido");
+                                  } 
+                                }
+                              }
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                  top: 15, right: 30, left: 30, bottom: 15),
+                              child: Text('Alterar'),
+                            )
+                          )
+                        )
+                      ),
+                    ]
+                  )
+                )
+              );
+  }
+
+  Future editValorEstacio(id, valor, veiculo) async {
+    var idVeiculo = veiculo.split(" - ");
+    GraphQLClient _client = _graphql.myQlClient();
+    QueryResult result = await _client.mutate(
+        MutationOptions(document: gql(_queries.editValorEstacio(id, valor, idVeiculo[0]))));
+
+    if (result.hasException)
+      return false;
+    else {
+      jsonResposta = result.data;
+      return true;
+    }
+  }
+}
+
+class StateEditHorarioEstacio extends StatefulWidget {
+  final id;
+  StateEditHorarioEstacio({Key? key, required this.id}) : super(key: key);
+  @override
+  PgEditHorarioEstacio createState() => PgEditHorarioEstacio(id: id);
+}
+
+class PgEditHorarioEstacio extends State<StateEditHorarioEstacio> {
+  final id;
+  PgEditHorarioEstacio({required this.id}) : super();
+
+  Queries _queries = Queries();
+  GQlConfiguration _graphql = GQlConfiguration();
+
+  var jsonResposta;
+
+  TextEditingController inputTextDia = TextEditingController();
+  TextEditingController inputTimeAbr = TextEditingController();
+  TextEditingController inputTimeFecha = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/logonometransparente.png',
+                fit: BoxFit.contain,
+                height: 40,
+              ),
+            ],
+          ),
+          automaticallyImplyLeading: false,
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0.0,
+        ),
+        body: Center(
+            child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Container(
+                    margin: const EdgeInsets.only(top: 20, right: 20, left: 20),
+                        child: TextField(
+                          controller: inputTextDia,
+                          obscureText: false,
+                          decoration: InputDecoration(
+                              fillColor: Color.fromARGB(20, 20, 20, 20),
+                              filled: true,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(15.0),
+                                borderSide: BorderSide(
+                                  width: 0,
+                                  style: BorderStyle.none,
+                                ),
+                              ),
+                              prefixIcon: Icon(
+                                Icons.local_parking,
+                                size: 30.0,
+                                color: Colors.grey.shade800,
+                              ),
+                              hintText: 'Dia da semana')
+                            )),
+                            Container(
+                        margin: const EdgeInsets.only(top: 25),
+                  child:Text("Horário de funcionamento: ", style: TextStyle(fontSize: 14))),
+                  Container(
+                        margin: const EdgeInsets.only(right: 25, left: 25),
+                  child: TextField(
+                controller: inputTimeAbr,
+                decoration: InputDecoration( 
+                   icon: Icon(Icons.timer),
+                   labelText: "Abertura"
+                ),
+                readOnly: true, 
+                onTap: () async {
+                  TimeOfDay? pickedTime =  await showTimePicker(
+                          initialTime: TimeOfDay.now(),
+                          context: context,
+                      );
+                  if(pickedTime != null ){
+                      DateTime parsedTime = DateFormat.jm().parse(pickedTime.format(context).toString());
+                      String formattedTime = DateFormat('HH:mm').format(parsedTime);
+                      setState(() {
+                        inputTimeAbr.text = formattedTime;
+                      });
+                  }
+                },
+             )),
+             Container(
+                        margin: const EdgeInsets.only(right: 25, left: 25),
+                  child: TextField(
+                controller: inputTimeFecha,
+                decoration: InputDecoration( 
+                   icon: Icon(Icons.timer),
+                   labelText: "Fechamento"
+                ),
+                readOnly: true, 
+                onTap: () async {
+                  TimeOfDay? pickedTime =  await showTimePicker(
+                          initialTime: TimeOfDay.now(),
+                          context: context,
+                      );
+                  if(pickedTime != null ){
+                      DateTime parsedTime = DateFormat.jm().parse(pickedTime.format(context).toString());
+                      String formattedTime = DateFormat('HH:mm').format(parsedTime);
+                      setState(() {
+                        inputTimeFecha.text = formattedTime;
+                      });
+                  }
+                },
+             )),
+                  new SizedBox(
+                    width: 200.0,
+                    child: Container(
+                        margin: const EdgeInsets.only(top: 20, bottom: 20),
+                        child: ElevatedButton(
+                            onPressed: () async {
+                              var result = await editHorarioEstacio(id, inputTextDia.text, getSeconds(inputTimeAbr.text),getSeconds(inputTimeFecha.text));
+                              if (result) {
+                                if (jsonResposta["editEstacioHorarioPadrao"]["success"] ==true) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => HomeAdmEstacionamento(id: id)),
+                                  );
+                                  mostrarAlertDialogSucesso(context,"Dados alterados com sucesso");
+                                } else {
+                                  if (jsonResposta["editEstacioHorarioPadrao"]["error"] =="hora_padrao_fecha_antes_de_abrir") {
+                                    mostrarAlertDialogErro(context, "Horários inválidos");
+                                  } else if (jsonResposta["editEstacioHorarioPadrao"]["error"] =="sem_permissao") {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => MyHomePage()),
+                                    );
+                                    mostrarAlertDialogErro(context,"Você não tem permissão para isso, faça o login");
+                                  } else if (jsonResposta["editEstacioHorarioPadrao"]["error"] =="hora_padrao_dia_incompleto") {
+                                    mostrarAlertDialogErro(context, "Preencha todos os horários");
+                                  } else if (jsonResposta["editEstacioHorarioPadrao"]["error"] =="dia_invalido") {
+                                    mostrarAlertDialogErro(context, "Dia inválido");
+                                  } else {
+                                    mostrarAlertDialogErro(context, "Erro desconhecido");
+                                  } 
+                                }
+                              }
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                  top: 15, right: 30, left: 30, bottom: 15),
+                              child: Text('Alterar'),
+                            )
+                          )
+                        )
+                      ),
+                    ]
+                  )
+                )
+              );
+  }
+
+  Future editHorarioEstacio(id, dia, hrAbre, hrFecha) async {
+    GraphQLClient _client = _graphql.myQlClient();
+    QueryResult result = await _client.mutate(
+        MutationOptions(document: gql(_queries.editHorarioEstacio(id, hrAbre, hrFecha, dia))));
+
+    if (result.hasException)
+      return false;
+    else {
+      jsonResposta = result.data;
+      return true;
+    }
+  }
+}
+
 mostrarAlertDialogInformacoes(BuildContext context, info) {
   Widget okButton = ElevatedButton(
     child: Text("Ok"),
@@ -2043,6 +3568,112 @@ mostrarAlertDialogInformacoes(BuildContext context, info) {
     content: Text(info),
     actions: [
       okButton,
+    ],
+  );
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return alerta;
+    },
+  );
+}
+
+mostrarAlertDialogAttQntVaga(BuildContext context, id) {
+  Queries _queries = Queries();
+  GQlConfiguration _graphql = GQlConfiguration();
+
+  var jsonResposta;
+
+  Future atualizarQntVaga(qtd) async {
+    GraphQLClient _client = _graphql.myQlClient();
+    QueryResult result = await _client.mutate(
+        MutationOptions(document: gql(_queries.atualizarQntVaga(qtd))));
+
+    if (result.hasException)
+      return false;
+    else {
+      jsonResposta = result.data;
+      return true;
+    }
+  }
+
+  var controllerQtdVagas = TextEditingController();
+  AlertDialog alerta = AlertDialog(
+    title: Text("Atualizar vagas disponíveis"),
+    content: TextField(
+      controller: controllerQtdVagas,
+      obscureText: false,
+      decoration: InputDecoration(
+          fillColor: Color.fromARGB(20, 20, 20, 20),
+          filled: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15.0),
+            borderSide: BorderSide(
+              width: 0,
+              style: BorderStyle.none,
+            ),
+          ),
+          prefixIcon: Icon(
+            Icons.edit,
+            size: 30.0,
+            color: Colors.grey.shade800,
+          ),
+          hintText: 'Vagas')),
+            
+    actions: [
+      ElevatedButton(
+    child: Text("Confirmar"),
+    onPressed: () async {
+      var result = await atualizarQntVaga(controllerQtdVagas.text);
+          if (result) {
+            if (jsonResposta["atualizarQtdVagaLivre"]["success"] ==true) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => HomeAdmEstacionamento(id: id)),
+              );
+              mostrarAlertDialogSucesso(context,
+                  "Vagas atualizadas com sucesso");
+            } else {
+              if (jsonResposta["atualizarQtdVagaLivre"]["error"] ==
+                  "sem_permissao") {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => MyHomePage()),
+                            );
+                            mostrarAlertDialogErro(context,
+                                "Você não tem permissão para isso, faça o login");
+              } else if (jsonResposta["atualizarQtdVagaLivre"]["error"] =="quantia_negativa") {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => HomeAdmEstacionamento(id: id)),
+                            );
+                            mostrarAlertDialogErro(context,"Quantia de vagas negativa");
+              } else if (jsonResposta["atualizarQtdVagaLivre"]["error"] =="sem_estacionamento") {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => HomeAdmEstacionamento(id: id)),
+                            );
+                            mostrarAlertDialogErro(context,"Sem estacionamento");
+              } else if (jsonResposta["atualizarQtdVagaLivre"]["error"] =="quantia_maior_que_total") {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => HomeAdmEstacionamento(id: id)),
+                            );
+                            mostrarAlertDialogErro(context,"Quantia de vagas disponíveis maior que a de vagas totais");
+              } else {
+                mostrarAlertDialogErro(
+                    context, "Erro desconhecido");
+              }
+            }
+          }
+    },
+  )
     ],
   );
 
@@ -2303,4 +3934,32 @@ mostrarAlertDialogSucesso(BuildContext context, msgSucesso) {
       return alerta;
     },
   );
+}
+
+String formatHHMMSS(seconds) {
+  if(seconds == null){
+    return "Não definido";
+  }
+  if (seconds != 0) {
+    int hours = (seconds / 3600).truncate();
+    seconds = (seconds % 3600).truncate();
+    int minutes = (seconds / 60).truncate();
+
+    String hoursStr = (hours).toString().padLeft(2, '0');
+    String minutesStr = (minutes).toString().padLeft(2, '0');
+    String secondsStr = (seconds % 60).toString().padLeft(2, '0');
+
+    if (hours == 0) {
+      return "$minutesStr:$secondsStr";
+    }
+    return "$hoursStr:$minutesStr:$secondsStr";
+  } else {
+    return "";
+  }
+}
+ 
+int getSeconds(tempo){
+  var horario = tempo.split(":");
+  int segundos = (int.parse(horario[0])  * 3600) + (int.parse(horario[1]) * 60);
+  return segundos;
 }
