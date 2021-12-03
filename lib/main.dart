@@ -2918,8 +2918,10 @@ class PgEditEstacio extends State<StateEditEstacio> {
           backgroundColor: Colors.transparent,
           elevation: 0.0,
         ),
-        body: Center(
-            child: Column(
+        body: SingleChildScrollView(
+          child: Stack(
+            children: <Widget>[
+            Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
               Container(
@@ -3231,6 +3233,7 @@ class PgEditEstacio extends State<StateEditEstacio> {
                             top: 15, right: 30, left: 30, bottom: 15),
                         child: Text('Alterar'),
                       ))),
+            ])
             ])));
   }
 
@@ -3288,8 +3291,10 @@ class PgEditValorEstacio extends State<StateEditValorEstacio> {
           backgroundColor: Colors.transparent,
           elevation: 0.0,
         ),
-        body: Center(
-            child: Column(
+        body: SingleChildScrollView(
+          child: Stack(
+            children: <Widget>[
+            Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   Text("Tipo de veículo: "),
@@ -3391,7 +3396,7 @@ class PgEditValorEstacio extends State<StateEditValorEstacio> {
                       ),
                     ]
                   )
-                )
+            ]))
               );
   }
 
